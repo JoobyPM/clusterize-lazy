@@ -2,13 +2,10 @@ name: CI
 
 on:
   push:
-    branches:
-      - main
-    tags:
-      - 'v*'
+    branches: [main]
+    tags: ['v*']
   pull_request:
-    branches:
-      - main
+    branches: [main]
   workflow_dispatch:
 
 jobs:
@@ -16,14 +13,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # Install pnpm first so later steps can rely on it
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 10.12.1
+          run_install: false
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: pnpm
-      - uses: pnpm/action-setup@v2
-        with:
-          version: 8
-          run_install: true
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
       - name: Run unit tests
         run: pnpm test
 
@@ -36,14 +35,16 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 10.12.1
+          run_install: false
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           registry-url: https://registry.npmjs.org
-      - uses: pnpm/action-setup@v2
-        with:
-          version: 8
-          run_install: true
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
       - name: Build
         run: pnpm build
       - name: Publish to npm
