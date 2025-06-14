@@ -1,7 +1,7 @@
 {
   "name": "clusterize-lazy",
-  "version": "0.1.0",
-  "description": "Lightweight virtual scroll helper with zero dependencies for Deno, Node and browsers.",
+  "version": "0.1.1",
+  "description": "Lightweight virtual scroll helper with zero dependencies for browsers.",
   "author": "JoobyPM",
   "license": "MIT",
   "repository": {
@@ -36,7 +36,8 @@
   "scripts": {
     "build": "esbuild src/clusterize-lazy.js --bundle --format=esm --minify --outfile=dist/clusterize.esm.js && esbuild src/clusterize-lazy.js --bundle --format=iife --global-name=Clusterize --minify --outfile=dist/clusterize.min.js",
     "test": "vitest run",
-    "prepare": "pnpm build"
+    "prepare": "pnpm build",
+    "format": "deno fmt"
   },
   "devDependencies": {
     "@types/jsdom": "^21.1.7",

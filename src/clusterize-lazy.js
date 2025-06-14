@@ -1,5 +1,5 @@
 // deno-lint-ignore-file no-window
-/* 
+/*
  * https://github.com/JoobyPM/clusterize-lazy
  * MIT License
  *
