@@ -36,12 +36,12 @@ function Clusterize(opts) {
 	const renderSkeleton = fn(opts.renderSkeletonRow, 'renderSkeletonRow');
 	const renderRaw = opts.renderRaw ? fn(opts.renderRaw, 'renderRaw') : null;
 
-	/* empty‑state renderer (optional) */
+	/* empty-state renderer (optional) */
 	let renderEmptyStateFn = opts.renderEmptyState
 		? fn(opts.renderEmptyState, 'renderEmptyState')
 		: () => `<div class="clusterize-empty">No data</div>`;
 
-	/* scroll‑progress callback (optional) */
+	/* scroll-progress callback (optional) */
 	let scrollProgressCb = typeof opts.scrollingProgress === 'function' ? opts.scrollingProgress : null;
 
 	/* dom */
@@ -54,7 +54,8 @@ function Clusterize(opts) {
 	const debounceMs = num(opts.debounceMs, null, 120);
 	const bufRows = num(opts.buffer, null, 5);
 	const prefetchRows = num(opts.prefetchRows, null, bufRows);
-	const cacheTTL = num(opts.cacheTTL, null, Infinity);
+	const cacheTTL = num(opts.cacheTTL, null, 300_000); // default 5 min
+	const autoEvict = !!opts.autoEvict;
 	const onStop = typeof opts.onScrollFinish === 'function' ? opts.onScrollFinish : () => {};
 	const buildIndex = !!opts.buildIndex;
 	const keyField = opts.primaryKey || 'id';
@@ -81,7 +82,9 @@ function Clusterize(opts) {
 		return v;
 	}
 	function isLive(row) {
-		return row && (now() - row.ts) < cacheTTL;
+		if (!row) return false;
+		if (!autoEvict) return true; // unlimited cache
+		return (now() - row.ts) < cacheTTL;
 	}
 	function normalizeRow(idx, data) {
 		if (typeof data === 'string') return { html: data, ts: now(), key: null };
@@ -134,7 +137,7 @@ function Clusterize(opts) {
 		return -1;
 	}
 
-	/* scroll‑progress notifier */
+	/* scroll-progress notifier */
 	function fireProgress(firstVis) {
 		if (scrollProgressCb && firstVis !== lastProgressRow) {
 			lastProgressRow = firstVis;
