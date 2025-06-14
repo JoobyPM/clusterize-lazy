@@ -36,12 +36,12 @@ function Clusterize(opts) {
 	const renderSkeleton = fn(opts.renderSkeletonRow, 'renderSkeletonRow');
 	const renderRaw = opts.renderRaw ? fn(opts.renderRaw, 'renderRaw') : null;
 
-	/* empty-state renderer (optional) */
+	/* empty‑state renderer (optional) */
 	let renderEmptyStateFn = opts.renderEmptyState
 		? fn(opts.renderEmptyState, 'renderEmptyState')
 		: () => `<div class="clusterize-empty">No data</div>`;
 
-	/* scroll-progress callback (optional) */
+	/* scroll‑progress callback (optional) */
 	let scrollProgressCb = typeof opts.scrollingProgress === 'function' ? opts.scrollingProgress : null;
 
 	/* dom */
@@ -133,7 +133,7 @@ function Clusterize(opts) {
 		return -1;
 	}
 
-	/* scroll-progress notifier */
+	/* scroll‑progress notifier */
 	function fireProgress(firstVis) {
 		if (scrollProgressCb && firstVis !== lastProgressRow) {
 			lastProgressRow = firstVis;

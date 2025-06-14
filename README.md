@@ -11,6 +11,11 @@ A minimal yet powerful virtual scroll helper written in plain ES modules.
 [![bundle size](https://img.shields.io/bundlephobia/minzip/clusterize-lazy?label=gzip)](https://bundlephobia.com/result?p=clusterize-lazy)
 [![license](https://img.shields.io/github/license/JoobyPM/clusterize-lazy)](LICENSE)
 
+## Live demo
+Check out the interactive quotes list powered by Clusterize-Lazy on GitHub Pages:
+[https://joobypm.github.io/clusterize-lazy/examples/quotes.html](https://joobypm.github.io/clusterize-lazy/examples/quotes.html)
+(works in any modern browser without a build step; source lives in `examples/`).
+
 ## Installation
 
 ### npm / Yarn / pnpm
