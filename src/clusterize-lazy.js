@@ -53,6 +53,7 @@ function Clusterize(opts) {
 	/* tuning */
 	const debounceMs = num(opts.debounceMs, null, 120);
 	const bufRows = num(opts.buffer, null, 5);
+	const prefetchRows = num(opts.prefetchRows, null, bufRows);
 	const cacheTTL = num(opts.cacheTTL, null, Infinity);
 	const onStop = typeof opts.onScrollFinish === 'function' ? opts.onScrollFinish : () => {};
 	const buildIndex = !!opts.buildIndex;
@@ -72,7 +73,7 @@ function Clusterize(opts) {
 	}
 	function num(v, name, dflt) {
 		if (v == null) return dflt;
-		if (typeof v !== 'number') throw new Error(name + ' must be number');
+		if (typeof v !== 'number') throw new Error((name || 'value') + ' must be number');
 		return v;
 	}
 	function fn(v, name) {
@@ -168,7 +169,10 @@ function Clusterize(opts) {
 		const visCount = Math.ceil(scrollElem.clientHeight / rowHeight);
 		const start = Math.max(0, firstVis - bufRows);
 		const end = Math.min(totalRows - 1, firstVis + visCount + bufRows);
-		debFetch(firstMissing(start, end));
+		debFetch(firstMissing(
+			start,
+			Math.min(totalRows - 1, end + prefetchRows),
+		));
 		stopDebounced(firstVis);
 	};
 
@@ -183,7 +187,10 @@ function Clusterize(opts) {
 			const visCount = Math.ceil(scrollElem.clientHeight / rowHeight);
 			const start = Math.max(0, firstVis - bufRows);
 			const end = Math.min(totalRows - 1, firstVis + visCount + bufRows);
-			debFetch(firstMissing(start, end));
+			debFetch(firstMissing(
+				start,
+				Math.min(totalRows - 1, end + prefetchRows),
+			));
 		}
 	};
 
