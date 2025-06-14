@@ -1,9 +1,9 @@
 /**
- * Clusterize‑Lazy – TypeScript definitions
+ * Clusterize-Lazy - TypeScript definitions
  * Version: 1.0.0
  *
  * These typings intentionally expose a **generic** API so you can describe
- * the structure of your row objects and (optionally) primary‑key type.
+ * the structure of your row objects and (optionally) primary-key type.
  *
  * Example:
  * ```ts
@@ -28,7 +28,7 @@ export interface FetchInitResponse<R> {
 }
 
 /**
- * Options object passed to the constructor (generic in *R* - the row type, and *K* - the primary‑key type).
+ * Options object passed to the constructor (generic in *R* - the row type, and *K* - the primary-key type).
  */
 export interface ClusterizeOptions<R = unknown, K = any> {
   /* Required */
@@ -41,14 +41,14 @@ export interface ClusterizeOptions<R = unknown, K = any> {
   renderSkeletonRow: (height: number, index: number) => string;
 
   /* Optional */
-  /** Convert a *row object* to HTML. Required when the fetchers return objects rather than pre‑rendered HTML strings. */
+  /** Convert a *row object* to HTML. Required when the fetchers return objects rather than pre-rendered HTML strings. */
   renderRaw?: (index: number, data: R) => string;
 
   /** Extra rows rendered above & below viewport (default 5). */
   buffer?: number;
-  /** Row cache time‑to‑live in milliseconds (default: `Infinity`, meaning never evict). */
+  /** Row cache time-to-live in milliseconds (default: `Infinity`, meaning never evict). */
   cacheTTL?: number;
-  /** Debounce delay for scroll‑triggered fetches (default 120 ms). */
+  /** Debounce delay for scroll-triggered fetches (default 120 ms). */
   debounceMs?: number;
 
   /* DOM hooks (pass *either* the element itself or its id) */
@@ -57,13 +57,13 @@ export interface ClusterizeOptions<R = unknown, K = any> {
   contentElem?: HTMLElement;
   contentId?: string;
 
-  /* Primary‑key indexing (for fast update/delete by id) */
+  /* Primary-key indexing (for fast update/delete by id) */
   buildIndex?: boolean;
   /** Field name used to extract the key from row objects (default "id"). */
   primaryKey?: string;
 
   /* Misc UX hooks */
-  /** Custom empty‑state renderer or static HTML. */
+  /** Custom empty-state renderer or static HTML. */
   renderEmptyState?: (() => string) | string;
   /** Fires once after scrolling stops for 100 ms. */
   onScrollFinish?: (firstVisibleRow: number) => void;
@@ -73,9 +73,9 @@ export interface ClusterizeOptions<R = unknown, K = any> {
 
 /** Entry used by {@link Clusterize.update}. */
 export interface UpdateEntry<R, K = any> {
-  /** Zero‑based index of the row to replace (preferred when known). */
+  /** Zero-based index of the row to replace (preferred when known). */
   index?: number;
-  /** Primary‑key value (requires `buildIndex`). */
+  /** Primary-key value (requires `buildIndex`). */
   id?: K;
   /** New row data (string or object depending on setup). */
   data: R;
@@ -94,12 +94,12 @@ export interface DebugDump<R, K = any> {
 }
 
 /**
- * Clusterize‑Lazy public API class.
+ * Clusterize-Lazy public API class.
  */
 export default class Clusterize<R = unknown, K = any> {
   constructor(options: ClusterizeOptions<R, K>);
 
-  /* ————— Mutators ————— */
+  /* ----- Mutators ----- */
   insert(rows: RowArray<R>, offset?: number): void;
   update(updates: Array<UpdateEntry<R, K>>): void;
   /** Remove rows by indices or primary keys. */
@@ -107,20 +107,20 @@ export default class Clusterize<R = unknown, K = any> {
   /** Replace the entire dataset (useful for search/filter). */
   applyFilter(newTotal: number, rows?: RowArray<R>): void;
 
-  /* ————— House‑keeping ————— */
+  /* ----- House-keeping ----- */
   invalidateCache(): void;
   recalculateHeight(): void;
   destroy(): void;
 
-  /* ————— Scrolling helpers ————— */
+  /* ----- Scrolling helpers ----- */
   scrollToRow(index: number, smooth?: boolean): void;
   scrollingProgress(cb: ((firstVisibleRow: number) => void) | null): void;
 
-  /* ————— Renderer helpers ————— */
+  /* ----- Renderer helpers ----- */
   renderEmptyState(renderer: (() => string) | string | null): void;
   refresh(): void;
 
-  /* ————— Diagnostics ————— */
+  /* ----- Diagnostics ----- */
   getLoadedCount(): number;
   /** Debug method - **not** part of the stable API, may change without notice. */
   _dump(): DebugDump<R, K>;
