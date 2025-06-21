@@ -2,16 +2,17 @@
 
 A minimal yet powerful virtual scroll helper written in plain ES modules.
 
-* **Zero dependencies** - ships as a single file
-* **Browser‑first** - works in all modern browsers without build steps and also exposes `window.Clusterize` for classic `<script>` usage
-* **End‑to‑end lazy fetch** - wire `fetchOnInit` and `fetchOnScroll` once and forget
-* **Skeleton rows** - delightful UX while data streams in
-* **Primary‑key index** - optional O(1) updates and deletes when your rows have unique ids
+- **Zero dependencies** - ships as a single file
+- **Browser‑first** - works in all modern browsers without build steps and also exposes `window.Clusterize` for classic `<script>` usage
+- **End‑to‑end lazy fetch** - wire `fetchOnInit` and `fetchOnScroll` once and forget
+- **Skeleton rows** - delightful UX while data streams in
+- **Primary‑key index** - optional O(1) updates and deletes when your rows have unique ids
 
 [![bundle size](https://img.shields.io/bundlephobia/minzip/clusterize-lazy?label=gzip)](https://bundlephobia.com/result?p=clusterize-lazy)
 [![license](https://img.shields.io/github/license/JoobyPM/clusterize-lazy)](LICENSE)
 
 ## Live demo
+
 Check out the interactive quotes list powered by Clusterize-Lazy on GitHub Pages:
 [https://joobypm.github.io/clusterize-lazy/examples/quotes.html](https://joobypm.github.io/clusterize-lazy/examples/quotes.html)
 (works in any modern browser without a build step; source lives in `examples/`).
@@ -25,13 +26,13 @@ npm i clusterize-lazy
 ```
 
 ```js
-import Clusterize from "clusterize-lazy";
+import Clusterize from 'clusterize-lazy';
 ```
 
 ### Deno (via esm.sh)
 
 ```ts
-import Clusterize from "https://esm.sh/clusterize-lazy@0.1";
+import Clusterize from 'https://esm.sh/clusterize-lazy@0.1';
 ```
 
 ### Plain `<script>` tag
@@ -44,35 +45,35 @@ import Clusterize from "https://esm.sh/clusterize-lazy@0.1";
 ## Quick start
 
 ```html
-<div id="scroll" style="height:300px;overflow:auto">
-  <div id="content"></div>
+<div id="scroll" style="height: 300px; overflow: auto">
+	<div id="content"></div>
 </div>
 
 <script type="module">
-  import Clusterize from "./dist/clusterize.esm.js";
+	import Clusterize from './dist/clusterize.esm.js';
 
-  const cluster = new Clusterize({
-    rowHeight: 28,
-    scrollElem: document.getElementById("scroll"),
-    contentElem: document.getElementById("content"),
+	const cluster = new Clusterize({
+		rowHeight: 28,
+		scrollElem: document.getElementById('scroll'),
+		contentElem: document.getElementById('content'),
 
-    // initial batch
-    fetchOnInit: async () => ({
-      totalRows: 1000,
-      rows: await fetchRows(0, 40)
-    }),
+		// initial batch
+		fetchOnInit: async () => ({
+			totalRows: 1000,
+			rows: await fetchRows(0, 40),
+		}),
 
-    // subsequent lazy batches
-    fetchOnScroll: fetchRows,
+		// subsequent lazy batches
+		fetchOnScroll: fetchRows,
 
-    renderSkeletonRow: (h, i) => `<div class="skeleton" style="height:${h}px"></div>`,
+		renderSkeletonRow: (h, i) => `<div class="skeleton" style="height:${h}px"></div>`,
 
-    renderRaw: (idx, data) => `<div>${idx}: ${data.name}</div>`
-  });
+		renderRaw: (idx, data) => `<div>${idx}: ${data.name}</div>`,
+	});
 
-  function fetchRows(offset, size = 40) {
-    return fetch(`/api/items?offset=${offset}&size=${size}`).then(r => r.json());
-  }
+	function fetchRows(offset, size = 40) {
+		return fetch(`/api/items?offset=${offset}&size=${size}`).then((r) => r.json());
+	}
 </script>
 ```
 
@@ -88,7 +89,7 @@ import Clusterize from "https://esm.sh/clusterize-lazy@0.1";
 | `buffer`                         | `number` (default 5)                               | Extra rows above and below viewport |
 | `prefetchRows`                   | `number` (default = buffer)                        | Extra rows to prefetch ahead        |
 | `cacheTTL`                       | `number` ms (default 300,000)                      | Cache time‑to‑live (5 min default)  |
-| `autoEvict`                      | `boolean` (default false)                          | Enable automatic cache eviction    |
+| `autoEvict`                      | `boolean` (default false)                          | Enable automatic cache eviction     |
 | `debounceMs`                     | `number` (default 120)                             | Debounce for scroll driven fetches  |
 | `buildIndex`                     | `boolean`                                          | Enable primary‑key index            |
 | DOM hooks                        | `scrollElem`/`scrollId`, `contentElem`/`contentId` | Pass elements or their ids          |

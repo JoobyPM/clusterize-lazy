@@ -19,13 +19,12 @@ Clusterize‑Lazy is a light virtual‑scroll helper that lets you work with ver
 ## Constructor
 
 ```js
-import Clusterize from "clusterize-lazy";
+import Clusterize from 'clusterize-lazy';
 
 const cluster = new Clusterize(options);
 ```
 
 Calling `Clusterize(options)` without `new` works too; the factory returns an instance for convenience.
-
 
 ## Options
 
@@ -79,15 +78,15 @@ Calling `Clusterize(options)` without `new` works too; the factory returns an in
 
 ### `fetchOnInit()`
 
-* **Signature**: `() => Promise<RowArray \| { totalRows: number, rows: RowArray }>`
-* **When**: once during construction.
-* May return a plain array, in which case its length is taken as `totalRows`, or an object with explicit `totalRows`.
+- **Signature**: `() => Promise<RowArray \| { totalRows: number, rows: RowArray }>`
+- **When**: once during construction.
+- May return a plain array, in which case its length is taken as `totalRows`, or an object with explicit `totalRows`.
 
 ### `fetchOnScroll(offset)`
 
-* **Signature**: `(offset: number) => Promise<RowArray>`
-* **Offset** is the zero‑based index of the first missing row Clusterize wants.
-* The promise may resolve to fewer rows than finally needed; Clusterize will retry for the remainder.
+- **Signature**: `(offset: number) => Promise<RowArray>`
+- **Offset** is the zero‑based index of the first missing row Clusterize wants.
+- The promise may resolve to fewer rows than finally needed; Clusterize will retry for the remainder.
 
 ### `renderSkeletonRow(height, index)`
 
@@ -118,23 +117,23 @@ No DOM events are emitted. Interaction is purely via the public API and callback
 ### Basic finite list
 
 ```html
-<div id="scroll" style="height:250px;overflow:auto">
-  <div id="content"></div>
+<div id="scroll" style="height: 250px; overflow: auto">
+	<div id="content"></div>
 </div>
 <script type="module">
-  import Clusterize from "./dist/clusterize.esm.js";
+	import Clusterize from './dist/clusterize.esm.js';
 
-  const API = "https://dummyjson.com/users";
+	const API = 'https://dummyjson.com/users';
 
-  const cluster = new Clusterize({
-    rowHeight: 40,
-    scrollElem: document.getElementById("scroll"),
-    contentElem: document.getElementById("content"),
-    fetchOnInit: () => fetch(API).then(r => r.json()),
-    fetchOnScroll: () => Promise.resolve([]), // finite list
-    renderSkeletonRow: h => `<div class="skl" style="height:${h}px"></div>`,
-    renderRaw: (i, u) => `<div>${i + 1}. ${u.firstName} ${u.lastName}</div>`
-  });
+	const cluster = new Clusterize({
+		rowHeight: 40,
+		scrollElem: document.getElementById('scroll'),
+		contentElem: document.getElementById('content'),
+		fetchOnInit: () => fetch(API).then((r) => r.json()),
+		fetchOnScroll: () => Promise.resolve([]), // finite list
+		renderSkeletonRow: (h) => `<div class="skl" style="height:${h}px"></div>`,
+		renderRaw: (i, u) => `<div>${i + 1}. ${u.firstName} ${u.lastName}</div>`,
+	});
 </script>
 ```
 
@@ -143,20 +142,20 @@ No DOM events are emitted. Interaction is purely via the public API and callback
 ```js
 const PAGE = 40;
 const cluster = new Clusterize({
-  rowHeight: 28,
-  fetchOnInit: async () => {
-    const res = await fetchPage(0);
-    return { totalRows: res.total, rows: res.items };
-  },
-  fetchOnScroll: fetchPage,
-  renderSkeletonRow: (h) => `<div class="skl" style="height:${h}px"></div>`,
-  renderRaw: (i, row) => `<div>${row.title}</div>`
+	rowHeight: 28,
+	fetchOnInit: async () => {
+		const res = await fetchPage(0);
+		return { totalRows: res.total, rows: res.items };
+	},
+	fetchOnScroll: fetchPage,
+	renderSkeletonRow: (h) => `<div class="skl" style="height:${h}px"></div>`,
+	renderRaw: (i, row) => `<div>${row.title}</div>`,
 });
 
 function fetchPage(offset) {
-  return fetch(`/api/items?offset=${offset}&size=${PAGE}`)
-    .then(r => r.json())
-    .then(res => res.items);
+	return fetch(`/api/items?offset=${offset}&size=${PAGE}`)
+		.then((r) => r.json())
+		.then((res) => res.items);
 }
 ```
 
