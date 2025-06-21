@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Clusterize-Lazy - DummyJSON quotes</title>
+  <title>Clusterize-Lazy (v1) - DummyJSON quotes</title>
 
-  <!-- Tailwind CDN -->
+  <!-- Tailwind for quick styling -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="../../dist/index.iife.js"></script>
 
   <style>
-    /* slim rounded scrollbar for the list */
     #scroll::-webkit-scrollbar              { width: 8px; }
     #scroll::-webkit-scrollbar-thumb        { background:#cbd5e1; border-radius:9999px; }
     #scroll:hover::-webkit-scrollbar-thumb  { background:#94a3b8; }
@@ -18,13 +18,11 @@
 <body class="bg-slate-50 flex flex-col items-center min-h-screen pt-10">
   <h1 class="text-2xl font-semibold mb-6">Quotes from dummyjson.com</h1>
 
-  <!-- virtual-scroll viewport -->
   <div id="scroll"
        class="w-full max-w-2xl h-[520px] overflow-auto border rounded-2xl shadow bg-white">
     <div id="content"></div>
   </div>
 
-  <!-- status line -->
   <div id="stats" class="mt-4 text-sm text-gray-600">
     <span id="progress">Row 0 / 0</span>
     <span class="mx-2">|</span>

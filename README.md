@@ -1,122 +1,131 @@
 # Clusterize-Lazy
 
-A minimal yet powerful virtual scroll helper written in plain ES modules.
+Vanilla-JS virtual list with lazy loading and initial skeletons.
 
-- **Zero dependencies** - ships as a single file
-- **Browser‑first** - works in all modern browsers without build steps and also exposes `window.Clusterize` for classic `<script>` usage
-- **End‑to‑end lazy fetch** - wire `fetchOnInit` and `fetchOnScroll` once and forget
-- **Skeleton rows** - delightful UX while data streams in
-- **Primary‑key index** - optional O(1) updates and deletes when your rows have unique ids
+<span id="size-badge">![gzip](https://img.shields.io/bundlephobia/minzip/clusterize-lazy?label=gzip)</span> ![MIT](https://img.shields.io/github/license/JoobyPM/clusterize-lazy)
 
-[![bundle size](https://img.shields.io/bundlephobia/minzip/clusterize-lazy?label=gzip)](https://bundlephobia.com/result?p=clusterize-lazy)
-[![license](https://img.shields.io/github/license/JoobyPM/clusterize-lazy)](LICENSE)
+`Clusterize-Lazy` lets you render **millions of rows** in a scrollable
+container while downloading data only for what the user can actually
+see. Its goal is an **easy, framework-agnostic** API that just works in
+any modern browser - no build step required.
+
+> Small footprint, great DX - powered by [@tanstack/virtual-core](https://github.com/TanStack/virtual)
+
+<div align="center"><img src="docs/assets/demo.gif" width="600" alt="demo"/></div>
+
+## Features
+
+- **Single dependency** - relies on the rock-solid engine\
+  `@tanstack/virtual-core` (thanks Tanner & the TanStack team!)
+- **Dynamic row height** - actual DOM sizes are measured automatically
+- **Lazy loading + skeletons** - smooth UX even on shaky connections
+- **Typed from the ground up** - shipped `.d.ts` works in ESM browsers and legacy browsers (with polyfills)
+- **Batteries included** - debug logging, auto cache eviction, progress callback
 
 ## Live demo
 
-Check out the interactive quotes list powered by Clusterize-Lazy on GitHub Pages:
-[https://joobypm.github.io/clusterize-lazy/examples/quotes.html](https://joobypm.github.io/clusterize-lazy/examples/quotes.html)
-(works in any modern browser without a build step; source lives in `examples/`).
+Test it instantly (no transpiler):\
+<https://joobypm.github.io/clusterize-lazy/examples/quotes.html>
+
+> Source lives in `docs/examples/`
 
 ## Installation
 
-### npm / Yarn / pnpm
+### pnpm / npm / Yarn
 
 ```bash
-npm i clusterize-lazy
+pnpm add clusterize-lazy
 ```
 
 ```js
 import Clusterize from 'clusterize-lazy';
+const cluster = Clusterize({...});
 ```
 
-### Deno (via esm.sh)
-
-```ts
-import Clusterize from 'https://esm.sh/clusterize-lazy@0.1';
-```
-
-### Plain `<script>` tag
+### `<script>` tag (UMD)
 
 ```html
-<script src="https://unpkg.com/clusterize-lazy/dist/clusterize.min.js"></script>
-<!-- window.Clusterize available -->
+<script src="https://unpkg.com/clusterize-lazy/dist/index.iife.js"></script>
+<script>
+  const cluster = Clusterize.default({...});
+</script>
 ```
 
-## Quick start
+## 30-second example
 
 ```html
-<div id="scroll" style="height: 300px; overflow: auto">
+<div id="scroll" style="height: 320px; overflow: auto">
 	<div id="content"></div>
 </div>
 
 <script type="module">
-	import Clusterize from './dist/clusterize.esm.js';
+	import Clusterize from '/dist/index.esm.js';
 
-	const cluster = new Clusterize({
-		rowHeight: 28,
+	function fetchRows(offset, size = 40) {
+		return fetch(`/api/items?skip=${offset}&limit=${size}`).then((r) => r.json());
+	}
+
+	const cluster = Clusterize({
+		rowHeight: 32,
 		scrollElem: document.getElementById('scroll'),
 		contentElem: document.getElementById('content'),
 
-		// initial batch
-		fetchOnInit: async () => ({
-			totalRows: 1000,
-			rows: await fetchRows(0, 40),
-		}),
-
-		// subsequent lazy batches
+		fetchOnInit: async () => {
+			const rows = await fetchRows(0);
+			return { totalRows: 50_000, rows };
+		},
 		fetchOnScroll: fetchRows,
-
 		renderSkeletonRow: (h, i) => `<div class="skeleton" style="height:${h}px"></div>`,
-
-		renderRaw: (idx, data) => `<div>${idx}: ${data.name}</div>`,
+		renderRaw: (i, row) => `<div>${i + 1}. ${row.title}</div>`,
 	});
-
-	function fetchRows(offset, size = 40) {
-		return fetch(`/api/items?offset=${offset}&size=${size}`).then((r) => r.json());
-	}
 </script>
 ```
 
-## API overview (quick reference)
+## Quick reference
 
-| Name / method                    | Type / signature                                   | Purpose                             |
-| -------------------------------- | -------------------------------------------------- | ----------------------------------- |
-| `rowHeight` **required**         | `number`                                           | Fixed row height in px              |
-| `fetchOnInit` **required**       | `() => Promise<RowArray \| { totalRows, rows }>`   | Initial dataset or count            |
-| `fetchOnScroll` **required**     | `(offset) => Promise<RowArray>`                    | Lazy fetch for missing rows         |
-| `renderSkeletonRow` **required** | `(height, index) => string`                        | Placeholder HTML while loading      |
-| `renderRaw`                      | `(index, data) => string`                          | Render row objects                  |
-| `buffer`                         | `number` (default 5)                               | Extra rows above and below viewport |
-| `prefetchRows`                   | `number` (default = buffer)                        | Extra rows to prefetch ahead        |
-| `cacheTTL`                       | `number` ms (default 300,000)                      | Cache time‑to‑live (5 min default)  |
-| `autoEvict`                      | `boolean` (default false)                          | Enable automatic cache eviction     |
-| `debounceMs`                     | `number` (default 120)                             | Debounce for scroll driven fetches  |
-| `buildIndex`                     | `boolean`                                          | Enable primary‑key index            |
-| DOM hooks                        | `scrollElem`/`scrollId`, `contentElem`/`contentId` | Pass elements or their ids          |
-| `insert(rows, offset?)`          | `(RowArray, number)`                               | Insert new rows                     |
-| `update(updates)`                | `({index, id, data}[])`                            | Replace rows in place               |
-| `delete(keys)`                   | `(number[] \| IdType[])`                           | Remove rows by index or id          |
-| `applyFilter()`                  | `(newTotal, rows?)`                                | Reset with a new dataset            |
-| `invalidateCache()`              | `void`                                             | Force refetch of everything         |
-| `scrollToRow(idx, smooth)`       | `(number, boolean)`                                | Programmatic scroll                 |
-| `renderEmptyState(renderer)`     | `(() => string) \| string \| null`                 | Set or restore empty‑state renderer |
-| `recalculateHeight()`            | `void`                                             | Manual resize adjustment            |
-| `scrollingProgress(cb)`          | `((firstVisibleRow) => void) \| null`              | Continuous scroll progress          |
-| `refresh()`                      | `void`                                             | Force synchronous re‑render         |
-| `getLoadedCount()`               | `() => number`                                     | Rows currently live in cache        |
-| `destroy()`                      | `void`                                             | Tear down listeners and DOM         |
+| Option / method                   | Type / default                               | Purpose                                        |
+| --------------------------------- | -------------------------------------------- | ---------------------------------------------- |
+| **required**                      |                                              |                                                |
+| `rowHeight`                       | `number`                                     | Fixed row estimate (px)                        |
+| `fetchOnInit()`                   | `() ⇒ Promise<Row[] \| { totalRows, rows }>` | First data batch _or_ rows + total count       |
+| `fetchOnScroll(offset)`           | `(number) ⇒ Promise<Row[]>`                  | Fetches when a gap becomes visible             |
+| `renderSkeletonRow(height,index)` | `(number,number) ⇒ string`                   | Placeholder HTML                               |
+| **optional**                      |                                              |                                                |
+| `renderRaw(index,data)`           | `(number,Row) ⇒ string` · `undefined`        | Row renderer for object data                   |
+| `buffer`                          | `5`                                          | Rows rendered above/under viewport             |
+| `prefetchRows`                    | `buffer`                                     | Rows fetched ahead of viewport                 |
+| `debounceMs`                      | `120`                                        | Debounce between scroll & fetch                |
+| `cacheTTL`                        | `300 000`                                    | Milliseconds before a cached row is stale      |
+| `autoEvict`                       | `false`                                      | Drop stale rows automatically                  |
+| `showInitSkeletons`               | `true`                                       | Paint skeletons immediately before first fetch |
+| `debug`                           | `false`                                      | Console debug output                           |
+| `scrollingProgress(cb)`           | `(firstVisible:number) ⇒ void`               | Fires on every render                          |
+| **methods**                       |                                              |                                                |
+| `refresh()`                       | `void`                                       | Force re-render                                |
+| `scrollToRow(idx, smooth?)`       | `void` ( `true` = smooth)                    | Programmatic scroll                            |
+| `getLoadedCount()`                | `number`                                     | How many rows are cached                       |
+| `destroy()`                       | `void`                                       | Tear down listeners & cache                    |
 
-See [docs/API.md](docs/API.md) for the full contract.
+> See [docs/API.md](docs/API.md) for the full contract.
 
 ## Contributing
 
-1. `git clone https://github.com/JoobyPM/clusterize-lazy.git`
-2. `pnpm i` or `npm i`
-3. `pnpm test` - runs Deno and Node test suites
-4. `pnpm build` - outputs `dist/` bundles
-5. Open a pull request targeting the `main` branch
+```bash
+git clone https://github.com/JoobyPM/clusterize-lazy.git
+pnpm i
+pnpm test      # vitest + jsdom
+pnpm build     # tsup + esbuild
+```
 
-We follow Conventional Commits and SemVer. Releases are automated with release‑please.
+Formatting & linting are handled by **Deno** (`deno fmt`, `deno lint`).
+Please follow Conventional Commits; releases are automated.
+
+## Acknowledgements
+
+_Huge shout-out to_ **\[@tanstack/virtual-core]** - Clusterize-Lazy is
+basically a thin, opinionated shell around this fantastic engine.
+If you need a React / Vue / Solid binding or more power, use the TanStack
+package directly and consider sponsoring the project.
 
 ## License
 
