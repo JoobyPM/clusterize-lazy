@@ -6,8 +6,8 @@
     "semiColons": true,
     "singleQuote": true,
     "proseWrap": "preserve",
-    "include": ["src/"],
-    "exclude": ["src/testdata/", "src/fixtures/**/*.ts"]
+    "include": ["src/", "./**/*.md"],
+    "exclude": ["src/testdata/", "src/fixtures/**/*.ts", "dist/","pnpm-lock.yaml"]
   },
   "compilerOptions": {
     "lib": [

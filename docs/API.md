@@ -1,6 +1,6 @@
 # Clusterize-Lazy full API reference
 
-> Version: 0.1.1 (June 14, 2025)
+> Version: 0.1.2 (June 21, 2025)
 
 Clusterize‑Lazy is a light virtual‑scroll helper that lets you work with very large lists in browsers, Deno, or Node. This document expands the quick synopsis found in the README and covers every option, method, and callback in detail.
 
@@ -19,13 +19,12 @@ Clusterize‑Lazy is a light virtual‑scroll helper that lets you work with ver
 ## Constructor
 
 ```js
-import Clusterize from "clusterize-lazy";
+import Clusterize from 'clusterize-lazy';
 
 const cluster = new Clusterize(options);
 ```
 
 Calling `Clusterize(options)` without `new` works too; the factory returns an instance for convenience.
-
 
 ## Options
 
@@ -49,7 +48,9 @@ Calling `Clusterize(options)` without `new` works too; the factory returns an in
 | `contentId`         | `string`                                   | `undefined`               | Id of the content element (alt to `contentElem`).                        |
 | `debounceMs`        | `number`                                   | `120`                     | Debounce delay for scroll‑driven fetches.                                |
 | `buffer`            | `number`                                   | `5`                       | Extra rows rendered above and below current viewport.                    |
-| `cacheTTL`          | `number`                                   | `Infinity`                | Lifetime of a cached row in milliseconds. Older rows will be re‑fetched. |
+| `prefetchRows`      | `number`                                   | `buffer` value            | Extra rows to prefetch ahead of viewport for smoother scrolling.         |
+| `cacheTTL`          | `number`                                   | `300000` (5 minutes)      | Lifetime of a cached row in milliseconds. Older rows will be re‑fetched. |
+| `autoEvict`         | `boolean`                                  | `false`                   | Enable automatic cache eviction based on `cacheTTL`.                     |
 | `buildIndex`        | `boolean`                                  | `false`                   | Build a primary‑key index to enable `update` and `delete` by id.         |
 | `primaryKey`        | `string`                                   | `"id"`                    | Field name used when `buildIndex` is true.                               |
 | `onScrollFinish`    | `(firstVisibleRow: number) => void`        | no‑op                     | Invoked when the user stops scrolling (after 100 ms of inactivity).      |
@@ -77,15 +78,15 @@ Calling `Clusterize(options)` without `new` works too; the factory returns an in
 
 ### `fetchOnInit()`
 
-* **Signature**: `() => Promise<RowArray \| { totalRows: number, rows: RowArray }>`
-* **When**: once during construction.
-* May return a plain array, in which case its length is taken as `totalRows`, or an object with explicit `totalRows`.
+- **Signature**: `() => Promise<RowArray \| { totalRows: number, rows: RowArray }>`
+- **When**: once during construction.
+- May return a plain array, in which case its length is taken as `totalRows`, or an object with explicit `totalRows`.
 
 ### `fetchOnScroll(offset)`
 
-* **Signature**: `(offset: number) => Promise<RowArray>`
-* **Offset** is the zero‑based index of the first missing row Clusterize wants.
-* The promise may resolve to fewer rows than finally needed; Clusterize will retry for the remainder.
+- **Signature**: `(offset: number) => Promise<RowArray>`
+- **Offset** is the zero‑based index of the first missing row Clusterize wants.
+- The promise may resolve to fewer rows than finally needed; Clusterize will retry for the remainder.
 
 ### `renderSkeletonRow(height, index)`
 
@@ -116,23 +117,23 @@ No DOM events are emitted. Interaction is purely via the public API and callback
 ### Basic finite list
 
 ```html
-<div id="scroll" style="height:250px;overflow:auto">
-  <div id="content"></div>
+<div id="scroll" style="height: 250px; overflow: auto">
+	<div id="content"></div>
 </div>
 <script type="module">
-  import Clusterize from "./dist/clusterize.esm.js";
+	import Clusterize from './dist/clusterize.esm.js';
 
-  const API = "https://dummyjson.com/users";
+	const API = 'https://dummyjson.com/users';
 
-  const cluster = new Clusterize({
-    rowHeight: 40,
-    scrollElem: document.getElementById("scroll"),
-    contentElem: document.getElementById("content"),
-    fetchOnInit: () => fetch(API).then(r => r.json()),
-    fetchOnScroll: () => Promise.resolve([]), // finite list
-    renderSkeletonRow: h => `<div class="skl" style="height:${h}px"></div>`,
-    renderRaw: (i, u) => `<div>${i + 1}. ${u.firstName} ${u.lastName}</div>`
-  });
+	const cluster = new Clusterize({
+		rowHeight: 40,
+		scrollElem: document.getElementById('scroll'),
+		contentElem: document.getElementById('content'),
+		fetchOnInit: () => fetch(API).then((r) => r.json()),
+		fetchOnScroll: () => Promise.resolve([]), // finite list
+		renderSkeletonRow: (h) => `<div class="skl" style="height:${h}px"></div>`,
+		renderRaw: (i, u) => `<div>${i + 1}. ${u.firstName} ${u.lastName}</div>`,
+	});
 </script>
 ```
 
@@ -141,20 +142,20 @@ No DOM events are emitted. Interaction is purely via the public API and callback
 ```js
 const PAGE = 40;
 const cluster = new Clusterize({
-  rowHeight: 28,
-  fetchOnInit: async () => {
-    const res = await fetchPage(0);
-    return { totalRows: res.total, rows: res.items };
-  },
-  fetchOnScroll: fetchPage,
-  renderSkeletonRow: (h) => `<div class="skl" style="height:${h}px"></div>`,
-  renderRaw: (i, row) => `<div>${row.title}</div>`
+	rowHeight: 28,
+	fetchOnInit: async () => {
+		const res = await fetchPage(0);
+		return { totalRows: res.total, rows: res.items };
+	},
+	fetchOnScroll: fetchPage,
+	renderSkeletonRow: (h) => `<div class="skl" style="height:${h}px"></div>`,
+	renderRaw: (i, row) => `<div>${row.title}</div>`,
 });
 
 function fetchPage(offset) {
-  return fetch(`/api/items?offset=${offset}&size=${PAGE}`)
-    .then(r => r.json())
-    .then(res => res.items);
+	return fetch(`/api/items?offset=${offset}&size=${PAGE}`)
+		.then((r) => r.json())
+		.then((res) => res.items);
 }
 ```
 
@@ -179,3 +180,18 @@ Yes. Render your component to an HTML string (ReactDOMServer or similar) and let
 ### Is there built‑in keyboard navigation?
 
 Clusterize sets `tabindex="0"` on the content container so it can receive focus. Combine it with `scrollToRow` for custom keyboard controls.
+
+### How does cache eviction work?
+
+When `autoEvict` is enabled, cached rows older than `cacheTTL` milliseconds are automatically evicted from memory. This prevents unbounded memory growth during long scrolling sessions. The default `cacheTTL` is 5 minutes (300,000 ms). Set `autoEvict: false` to disable eviction entirely.
+
+### What's the difference between `buffer` and `prefetchRows`?
+
+- `buffer`: Extra rows rendered above and below the viewport for smooth scrolling
+- `prefetchRows`: Additional rows fetched ahead of time to prevent skeleton flashes during fast scrolling
+
+By default, `prefetchRows` equals `buffer`, but you can tune them independently for optimal performance.
+
+### How can I prevent skeleton flashes during fast scrolling?
+
+Increase `prefetchRows` to fetch more data ahead of the viewport. The system automatically fetches `prefetchRows` beyond the current buffer zone, reducing the chance of showing skeleton rows during rapid scrolling.

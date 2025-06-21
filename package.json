@@ -1,6 +1,6 @@
 {
   "name": "clusterize-lazy",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Lightweight virtual scroll helper with zero dependencies for browsers.",
   "author": "JoobyPM",
   "license": "MIT",
