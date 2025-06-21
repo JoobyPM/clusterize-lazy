@@ -1,6 +1,6 @@
 /**
  * Clusterize-Lazy - TypeScript definitions
- * Version: 1.0.0
+ * Version: 0.1.2
  *
  * These typings intentionally expose a **generic** API so you can describe
  * the structure of your row objects and (optionally) primary-key type.

@@ -1,6 +1,6 @@
 # Clusterize-Lazy full API reference
 
-> Version: 0.1.1 (June 14, 2025)
+> Version: 0.1.2 (June 21, 2025)
 
 Clusterize‑Lazy is a light virtual‑scroll helper that lets you work with very large lists in browsers, Deno, or Node. This document expands the quick synopsis found in the README and covers every option, method, and callback in detail.
 
@@ -49,7 +49,9 @@ Calling `Clusterize(options)` without `new` works too; the factory returns an in
 | `contentId`         | `string`                                   | `undefined`               | Id of the content element (alt to `contentElem`).                        |
 | `debounceMs`        | `number`                                   | `120`                     | Debounce delay for scroll‑driven fetches.                                |
 | `buffer`            | `number`                                   | `5`                       | Extra rows rendered above and below current viewport.                    |
-| `cacheTTL`          | `number`                                   | `Infinity`                | Lifetime of a cached row in milliseconds. Older rows will be re‑fetched. |
+| `prefetchRows`      | `number`                                   | `buffer` value            | Extra rows to prefetch ahead of viewport for smoother scrolling.         |
+| `cacheTTL`          | `number`                                   | `300000` (5 minutes)      | Lifetime of a cached row in milliseconds. Older rows will be re‑fetched. |
+| `autoEvict`         | `boolean`                                  | `false`                   | Enable automatic cache eviction based on `cacheTTL`.                     |
 | `buildIndex`        | `boolean`                                  | `false`                   | Build a primary‑key index to enable `update` and `delete` by id.         |
 | `primaryKey`        | `string`                                   | `"id"`                    | Field name used when `buildIndex` is true.                               |
 | `onScrollFinish`    | `(firstVisibleRow: number) => void`        | no‑op                     | Invoked when the user stops scrolling (after 100 ms of inactivity).      |
@@ -179,3 +181,18 @@ Yes. Render your component to an HTML string (ReactDOMServer or similar) and let
 ### Is there built‑in keyboard navigation?
 
 Clusterize sets `tabindex="0"` on the content container so it can receive focus. Combine it with `scrollToRow` for custom keyboard controls.
+
+### How does cache eviction work?
+
+When `autoEvict` is enabled, cached rows older than `cacheTTL` milliseconds are automatically evicted from memory. This prevents unbounded memory growth during long scrolling sessions. The default `cacheTTL` is 5 minutes (300,000 ms). Set `autoEvict: false` to disable eviction entirely.
+
+### What's the difference between `buffer` and `prefetchRows`?
+
+- `buffer`: Extra rows rendered above and below the viewport for smooth scrolling
+- `prefetchRows`: Additional rows fetched ahead of time to prevent skeleton flashes during fast scrolling
+
+By default, `prefetchRows` equals `buffer`, but you can tune them independently for optimal performance.
+
+### How can I prevent skeleton flashes during fast scrolling?
+
+Increase `prefetchRows` to fetch more data ahead of the viewport. The system automatically fetches `prefetchRows` beyond the current buffer zone, reducing the chance of showing skeleton rows during rapid scrolling.

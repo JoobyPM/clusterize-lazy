@@ -86,7 +86,9 @@ import Clusterize from "https://esm.sh/clusterize-lazy@0.1";
 | `renderSkeletonRow` **required** | `(height, index) => string`                        | Placeholder HTML while loading      |
 | `renderRaw`                      | `(index, data) => string`                          | Render row objects                  |
 | `buffer`                         | `number` (default 5)                               | Extra rows above and below viewport |
-| `cacheTTL`                       | `number` ms or `Infinity`                          | Controls stale row eviction         |
+| `prefetchRows`                   | `number` (default = buffer)                        | Extra rows to prefetch ahead        |
+| `cacheTTL`                       | `number` ms (default 300,000)                      | Cache time‑to‑live (5 min default)  |
+| `autoEvict`                      | `boolean` (default false)                          | Enable automatic cache eviction    |
 | `debounceMs`                     | `number` (default 120)                             | Debounce for scroll driven fetches  |
 | `buildIndex`                     | `boolean`                                          | Enable primary‑key index            |
 | DOM hooks                        | `scrollElem`/`scrollId`, `contentElem`/`contentId` | Pass elements or their ids          |
