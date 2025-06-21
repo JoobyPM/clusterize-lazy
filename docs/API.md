@@ -1,197 +1,133 @@
-# Clusterize-Lazy full API reference
+# Clusterize-Lazy - API (v1 · 2025-06-21)
 
-> Version: 0.1.2 (June 21, 2025)
+This document details every option, callback and method exposed by the
+current implementation (`src/core/ClusterizeLazy.ts`). Anything not
+listed here is **not** a public contract.
 
-Clusterize‑Lazy is a light virtual‑scroll helper that lets you work with very large lists in browsers, Deno, or Node. This document expands the quick synopsis found in the README and covers every option, method, and callback in detail.
+## 1. Constructor / factory
 
-## Table of contents
-
-1. [Constructor](#constructor)
-2. [Options](#options)
-3. [Public methods](#public-methods)
-4. [Callbacks](#callbacks)
-5. [Helper utilities](#helper-utilities)
-6. [Events](#events)
-7. [Examples](#examples)
-8. [TypeScript support](#typescript-support)
-9. [FAQ](#faq)
-
-## Constructor
-
-```js
+```ts
 import Clusterize from 'clusterize-lazy';
 
-const cluster = new Clusterize(options);
+const cluster = Clusterize(options);
 ```
 
-Calling `Clusterize(options)` without `new` works too; the factory returns an instance for convenience.
+Both calls return an _instance_ of `ClusterizeLazy`.
 
-## Options
+## 2. Options
 
-### Required
+| Name ★ = required      | Type                                                        | Default            | Description                                                                                                                         |
+| ---------------------- | ----------------------------------------------------------- | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
+| **rowHeight★**         | `number`                                                    | -                  | Estimated row height in pixels. Column auto-sizes still work - the measurement is only an initial guess.                            |
+| **fetchOnInit★**       | `() ⇒ Promise<Row[] \| { totalRows: number; rows: Row[] }>` | -                  | First batch. Return an array if you already have the full data, or an object `{ totalRows, rows }` to trigger further lazy loading. |
+| **fetchOnScroll★**     | `(offset: number) ⇒ Promise<Row[]>`                         | -                  | Called when a missing gap becomes visible. `offset` is the index to start from.                                                     |
+| **renderSkeletonRow★** | `(height: number, index: number) ⇒ string`                  | -                  | Placeholder HTML for a row that is still loading.                                                                                   |
+| **renderRaw**          | `(index: number, row: Row) ⇒ string`                        | `undefined`        | Render function for _object_ rows. Not needed if `fetch*` already returns ready HTML strings.                                       |
+| **scrollElem★**        | `HTMLElement`                                               | -                  | Scroll container (the element with `overflow:auto`).                                                                                |
+| **contentElem★**       | `HTMLElement`                                               | -                  | Inner element that receives the rows.                                                                                               |
+| **buffer**             | `number`                                                    | `5`                | Rows rendered above / below the viewport.                                                                                           |
+| **prefetchRows**       | `number`                                                    | _same as_ `buffer` | Rows fetched ahead of viewport.                                                                                                     |
+| **debounceMs**         | `number`                                                    | `120`              | Wait time after the user stops scrolling before fetching.                                                                           |
+| **cacheTTL**           | `number`                                                    | `300 000` (5 min)  | How long a cached row stays "fresh".                                                                                                |
+| **autoEvict**          | `boolean`                                                   | `false`            | Drop rows older than `cacheTTL` automatically.                                                                                      |
+| **showInitSkeletons**  | `boolean`                                                   | `true`             | Paint skeletons immediately while the first batch loads.                                                                            |
+| **debug**              | `boolean`                                                   | `false`            | Logs every significant action to `console.log`.                                                                                     |
+| **scrollingProgress**  | `(firstVisibleIdx: number) ⇒ void`                          | -                  | Fires on every render with the topmost visible row index.                                                                           |
 
-| Name                | Type                                                               | Description                                                            |
-| ------------------- | ------------------------------------------------------------------ | ---------------------------------------------------------------------- |
-| `rowHeight`         | `number`                                                           | Fixed pixel height of a single row (must be constant).                 |
-| `fetchOnInit`       | `() => Promise<RowArray \| { totalRows: number, rows: RowArray }>` | Supplies the initial batch or the total count plus first rows.         |
-| `fetchOnScroll`     | `(offset: number) => Promise<RowArray>`                            | Called when the viewport needs more data (offset is zero‑based index). |
-| `renderSkeletonRow` | `(height: number, index: number) => string`                        | Returns placeholder HTML while a row is still loading.                 |
+## 3. Public methods
 
-### Optional
+| Method           | Signature                               | Notes                                                       |
+| ---------------- | --------------------------------------- | ----------------------------------------------------------- |
+| `refresh`        | `() ⇒ void`                             | Force a synchronous re-render using whatever is in cache.   |
+| `scrollToRow`    | `(index: number, smooth = true) ⇒ void` | Scroll programmatically; `smooth = false` for instant jump. |
+| `getLoadedCount` | `() ⇒ number`                           | Rows currently cached (useful for progress bars).           |
+| `destroy`        | `() ⇒ void`                             | Detach observers, clear cache, make the instance inert.     |
 
-| Name                | Type                                       | Default                   | Description                                                              |
-| ------------------- | ------------------------------------------ | ------------------------- | ------------------------------------------------------------------------ |
-| `renderRaw`         | `(index: number, data: RowData) => string` | `null`                    | Required only when the fetchers return objects instead of HTML strings.  |
-| `scrollElem`        | `HTMLElement`                              | element with id `scroll`  | Scrollable container.                                                    |
-| `scrollId`          | `string`                                   | `undefined`               | Id of the scroll element (alt to `scrollElem`).                          |
-| `contentElem`       | `HTMLElement`                              | element with id `content` | Element to which rows are injected.                                      |
-| `contentId`         | `string`                                   | `undefined`               | Id of the content element (alt to `contentElem`).                        |
-| `debounceMs`        | `number`                                   | `120`                     | Debounce delay for scroll‑driven fetches.                                |
-| `buffer`            | `number`                                   | `5`                       | Extra rows rendered above and below current viewport.                    |
-| `prefetchRows`      | `number`                                   | `buffer` value            | Extra rows to prefetch ahead of viewport for smoother scrolling.         |
-| `cacheTTL`          | `number`                                   | `300000` (5 minutes)      | Lifetime of a cached row in milliseconds. Older rows will be re‑fetched. |
-| `autoEvict`         | `boolean`                                  | `false`                   | Enable automatic cache eviction based on `cacheTTL`.                     |
-| `buildIndex`        | `boolean`                                  | `false`                   | Build a primary‑key index to enable `update` and `delete` by id.         |
-| `primaryKey`        | `string`                                   | `"id"`                    | Field name used when `buildIndex` is true.                               |
-| `onScrollFinish`    | `(firstVisibleRow: number) => void`        | no‑op                     | Invoked when the user stops scrolling (after 100 ms of inactivity).      |
-| `scrollingProgress` | `(firstVisibleRow: number) => void`        | `null`                    | Continuous progress callback. See [Callbacks](#callbacks).               |
-| `renderEmptyState`  | `(() => string) \| string`                 | Built‑in "No data" block  | Customize empty list renderer.                                           |
+> **Tip** - All methods are chain-agnostic; nothing returns `this`.
 
-## Public methods
-
-| Method              | Signature / return                                                    | Description                                                                                                            |
-| ------------------- | --------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `insert`            | `(rows: RowArray, offset?: number) => void`                           | Insert new rows starting at the provided offset (default append). The list length grows.                               |
-| `update`            | `(updates: { index?: number; id?: IdType; data: RowData }[]) => void` | Replace existing rows in place. Each update may reference by index or by id (requires `buildIndex`).                   |
-| `delete`            | `(indicesOrIds: (number \| IdType)[]) => void`                        | Remove rows by index or id. Offsets shift accordingly.                                                                 |
-| `applyFilter`       | `(newTotal: number, rows?: RowArray) => void`                         | Reset the list with a new total and optional first rows (useful for search or server filtering). Scroll resets to top. |
-| `invalidateCache`   | `() => void`                                                          | Mark every cached row as stale, forcing future fetches. Counts remain intact.                                          |
-| `scrollToRow`       | `(index: number, smooth = true) => void`                              | Programmatically scroll the list so that the row starts at the top edge.                                               |
-| `renderEmptyState`  | `(renderer: (() => string) \| string \| null) => void`                | Change or restore the empty‑state renderer. Rerenders immediately if list is empty.                                    |
-| `recalculateHeight` | `() => void`                                                          | Manually trigger a resize recalculation (useful after CSS changes).                                                    |
-| `scrollingProgress` | `(cb: ((firstVisibleRow: number) => void) \| null) => void`           | Set or clear the continuous progress callback; fires immediately with current value.                                   |
-| `refresh`           | `() => void`                                                          | Force a synchronous re‑render using the current cache.                                                                 |
-| `getLoadedCount`    | `() => number`                                                        | Returns how many rows are currently live in the cache.                                                                 |
-| `destroy`           | `() => void`                                                          | Detach all listeners and wipe DOM, cache, and index. Instance becomes inert.                                           |
-
-## Callbacks
+## 4. Callbacks
 
 ### `fetchOnInit()`
 
-- **Signature**: `() => Promise<RowArray \| { totalRows: number, rows: RowArray }>`
-- **When**: once during construction.
-- May return a plain array, in which case its length is taken as `totalRows`, or an object with explicit `totalRows`.
+- **Runs** exactly once after construction (queued in a micro-task so the
+  constructor remains synchronous).
+- **Return** either:
+
+  - `Row[]` - if you already have everything
+  - `{ totalRows, rows }` - to continue lazy loading
 
 ### `fetchOnScroll(offset)`
 
-- **Signature**: `(offset: number) => Promise<RowArray>`
-- **Offset** is the zero‑based index of the first missing row Clusterize wants.
-- The promise may resolve to fewer rows than finally needed; Clusterize will retry for the remainder.
+- **offset** - first missing row index Clusterize requests.
+- You may return fewer rows than requested; the class will retry for the
+  remainder on the next render.
 
 ### `renderSkeletonRow(height, index)`
 
-Return placeholder HTML while data is loading. Commonly a shimmering grey bar.
+- Keep it **lightweight** - this runs often during fast scrolling.
 
-### `renderRaw(index, data)`
+### `renderRaw(index, row)`
 
-Convert a row object to HTML. Not required when the fetchers already deliver HTML strings.
+- Only required when row objects are used.
 
-### `scrollingProgress(firstVisibleRow)`
+### `scrollingProgress(firstVisible)`
 
-Continuous hook invoked on every render when the first visible row changes. Use this for scroll analytics or lazy image groups.
+- Fires _after_ every DOM update.
+  Use it for sticky section titles, analytics, lazy image decoding, etc.
 
-### `onScrollFinish(firstVisibleRow)`
+## 5. Internal behaviour (high-level)
 
-Debounced version that fires once after the user has stopped scrolling for 100 ms.
+1. **Constructor**
 
-## Helper utilities
+   - Sets up `@tanstack/virtual-core`.
+   - Optionally paints initial skeletons.
+   - Schedules first fetch on `queueMicrotask`.
+2. **Scroll** triggers the virtualizer which calls `render()`.
+3. **render()**
 
-Clusterize‑Lazy intentionally exposes no hidden helpers. The only diagnostic helper is `getLoadedCount()`.
+   - Calculates visible range.
+   - Inserts skeletons / cached rows.
+   - Measures real DOM heights (dynamic rows supported).
+   - Schedules a debounced fetch for the first missing gap.
+4. **Fetch completes**
 
-## Events
+   - Cache is patched.
+   - `render()` runs again to swap skeletons for real data.
+5. **Optional eviction** keeps memory use bounded.
 
-No DOM events are emitted. Interaction is purely via the public API and callbacks.
+## 6. Type aliases
 
-## Examples
-
-### Basic finite list
-
-```html
-<div id="scroll" style="height: 250px; overflow: auto">
-	<div id="content"></div>
-</div>
-<script type="module">
-	import Clusterize from './dist/clusterize.esm.js';
-
-	const API = 'https://dummyjson.com/users';
-
-	const cluster = new Clusterize({
-		rowHeight: 40,
-		scrollElem: document.getElementById('scroll'),
-		contentElem: document.getElementById('content'),
-		fetchOnInit: () => fetch(API).then((r) => r.json()),
-		fetchOnScroll: () => Promise.resolve([]), // finite list
-		renderSkeletonRow: (h) => `<div class="skl" style="height:${h}px"></div>`,
-		renderRaw: (i, u) => `<div>${i + 1}. ${u.firstName} ${u.lastName}</div>`,
-	});
-</script>
+```ts
+type RowLike = string | Record<string, unknown>;
+type Clusterize<TRow = RowLike> = ClusterizeLazy<TRow>;
 ```
 
-### Infinite scrolling with server paging
+The generic lets you retain strong typing for your domain rows.
 
-```js
-const PAGE = 40;
-const cluster = new Clusterize({
-	rowHeight: 28,
-	fetchOnInit: async () => {
-		const res = await fetchPage(0);
-		return { totalRows: res.total, rows: res.items };
-	},
-	fetchOnScroll: fetchPage,
-	renderSkeletonRow: (h) => `<div class="skl" style="height:${h}px"></div>`,
-	renderRaw: (i, row) => `<div>${row.title}</div>`,
-});
+## 7. FAQ (abridged)
 
-function fetchPage(offset) {
-	return fetch(`/api/items?offset=${offset}&size=${PAGE}`)
-		.then((r) => r.json())
-		.then((res) => res.items);
-}
-```
+- **Does it work in Safari / Firefox?**
+  Yes, any browser with `ResizeObserver` (all evergreen versions).
 
-## TypeScript support
+- **Can rows have variable height?**
+  Yes - as soon as the real element is in the DOM it's measured and the
+  virtualizer is informed.
 
-The package ships a handcrafted `types/index.d.ts`. Simply importing `clusterize-lazy` provides full typings in editors for both Deno and Node.
+- **How to hide the scroll bar?**
+  Style `scrollElem` with `scrollbar-width:none` / WebKit overrides - the
+  virtualizer is agnostic.
 
-## FAQ
+- **Why no update/insert/delete APIs?**
+  The current scope focuses on read-only infinite scrolling.
+  Mutable helpers may come later once the contract stabilises.
 
-### Why a fixed `rowHeight` and not auto‑measured?
+## 8. Acknowledgements
 
-Auto‑measurement causes layout thrashing and hurts performance. A constant height lets Clusterize‑Lazy compute paddings instantly without reading layout.
+Clusterize-Lazy stands on the shoulders of
+**[@tanstack/virtual-core](https://github.com/TanStack/virtual)** - an
+excellent, framework-agnostic virtual list engine.
+If this library helps you, please consider supporting TanStack.
 
-### How do I style the skeleton rows differently per theme?
+## 9. License
 
-Return a class name or inline styles in `renderSkeletonRow`. The method receives the index so you can vary shimmer delays.
-
-### Can I use React or Vue rows?
-
-Yes. Render your component to an HTML string (ReactDOMServer or similar) and let Clusterize inject it. Hydrate only the rows inside the viewport to avoid heavy mounts.
-
-### Is there built‑in keyboard navigation?
-
-Clusterize sets `tabindex="0"` on the content container so it can receive focus. Combine it with `scrollToRow` for custom keyboard controls.
-
-### How does cache eviction work?
-
-When `autoEvict` is enabled, cached rows older than `cacheTTL` milliseconds are automatically evicted from memory. This prevents unbounded memory growth during long scrolling sessions. The default `cacheTTL` is 5 minutes (300,000 ms). Set `autoEvict: false` to disable eviction entirely.
-
-### What's the difference between `buffer` and `prefetchRows`?
-
-- `buffer`: Extra rows rendered above and below the viewport for smooth scrolling
-- `prefetchRows`: Additional rows fetched ahead of time to prevent skeleton flashes during fast scrolling
-
-By default, `prefetchRows` equals `buffer`, but you can tune them independently for optimal performance.
-
-### How can I prevent skeleton flashes during fast scrolling?
-
-Increase `prefetchRows` to fetch more data ahead of the viewport. The system automatically fetches `prefetchRows` beyond the current buffer zone, reducing the chance of showing skeleton rows during rapid scrolling.
+MIT © 2025 JoobyPM
