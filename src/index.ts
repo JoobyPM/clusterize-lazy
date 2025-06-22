@@ -1,4 +1,4 @@
-import ClusterizeLazy, { ClusterizeOptions, RowLike } from './core/ClusterizeLazy.ts';
+import ClusterizeLazy, { ClusterizeOptions, PrimaryKey, RowLike } from './core/ClusterizeLazy.ts';
 
 /**
  * Compatibility factory.
@@ -14,7 +14,7 @@ function Clusterize<TRow = RowLike>(
 Clusterize.prototype = ClusterizeLazy.prototype;
 
 // Re-export types and class for power users
-export type { ClusterizeOptions, RowLike };
+export type { ClusterizeOptions, PrimaryKey, RowLike };
 export { ClusterizeLazy };
 
 // Default export = compatibility factory

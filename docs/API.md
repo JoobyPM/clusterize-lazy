@@ -1,4 +1,4 @@
-# Clusterize-Lazy - API (v1 · 2025-06-21)
+# Clusterize-Lazy - API (v1.1 · 2025-06-22)
 
 This document details every option, callback and method exposed by the
 current implementation (`src/core/ClusterizeLazy.ts`). Anything not
@@ -33,6 +33,8 @@ Both calls return an _instance_ of `ClusterizeLazy`.
 | **showInitSkeletons**  | `boolean`                                                   | `true`             | Paint skeletons immediately while the first batch loads.                                                                            |
 | **debug**              | `boolean`                                                   | `false`            | Logs every significant action to `console.log`.                                                                                     |
 | **scrollingProgress**  | `(firstVisibleIdx: number) ⇒ void`                          | -                  | Fires on every render with the topmost visible row index.                                                                           |
+| **buildIndex**         | `boolean`                                                   | `false`            | Build an internal map from primary keys to row indexes for efficient ID-based mutations.                                            |
+| **primaryKey**         | `PrimaryKey<TRow>`                                          | `'id'`             | Property name to use as primary key for indexing. Required when `buildIndex` is true.                                               |
 
 ## 3. Public methods
 
@@ -42,6 +44,10 @@ Both calls return an _instance_ of `ClusterizeLazy`.
 | `scrollToRow`    | `(index: number, smooth = true) ⇒ void` | Scroll programmatically; `smooth = false` for instant jump. |
 | `getLoadedCount` | `() ⇒ number`                           | Rows currently cached (useful for progress bars).           |
 | `destroy`        | `() ⇒ void`                             | Detach observers, clear cache, make the instance inert.     |
+| `insert`         | `(rows: TRow[], at = 0) ⇒ void`         | Insert rows at the specified position (0-based index).      |
+| `update`         | `(patches: Patch<TRow>[]) ⇒ void`       | Update existing rows by ID or index. Requires `buildIndex` for ID-based updates. |
+| `remove`         | `(keys: Array<unknown>) ⇒ void`         | Remove rows by ID or numeric index. Requires `buildIndex` for ID-based removal. |
+| `_dump`          | `() ⇒ { cache, index }`                 | Debug helper that returns internal cache and index state.   |
 
 > **Tip** - All methods are chain-agnostic; nothing returns `this`.
 
@@ -117,9 +123,8 @@ The generic lets you retain strong typing for your domain rows.
   Style `scrollElem` with `scrollbar-width:none` / WebKit overrides - the
   virtualizer is agnostic.
 
-- **Why no update/insert/delete APIs?**
-  The current scope focuses on read-only infinite scrolling.
-  Mutable helpers may come later once the contract stabilises.
+- **How do I use the mutation APIs?**
+  Enable `buildIndex: true` and set `primaryKey` to your ID field. Then use `insert()`, `update()`, and `remove()` methods for data manipulation.
 
 ## 8. Acknowledgements
 

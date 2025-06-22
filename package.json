@@ -1,6 +1,6 @@
 {
 	"name": "clusterize-lazy",
-	"version": "1.0.0",
+	"version": "1.1.0",
 	"description": "Lightweight virtual list helper for the browser.",
 	"author": "JoobyPM",
 	"license": "MIT",
@@ -30,7 +30,8 @@
 		"build": "npm run clean && tsup",
 		"dev": "tsup --watch",
 		"test": "vitest run",
-		"format": "deno fmt"
+		"format": "deno fmt src/ test/",
+		"check": "deno fmt src/ test/ ; deno lint src/ test/ ; deno check src/ test/"
 	},
 
 	"devDependencies": {

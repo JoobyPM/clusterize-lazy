@@ -2,7 +2,7 @@
 
 Vanilla-JS virtual list with lazy loading and initial skeletons.
 
-<span id="size-badge">![gzip](https://img.shields.io/bundlephobia/minzip/clusterize-lazy?label=gzip)</span> ![MIT](https://img.shields.io/github/license/JoobyPM/clusterize-lazy)
+<span id="size-badge">![gzip](https://img.shields.io/bundlejs/size/clusterize-lazy)</span> ![MIT](https://img.shields.io/github/license/JoobyPM/clusterize-lazy)
 
 `Clusterize-Lazy` lets you render **millions of rows** in a scrollable
 container while downloading data only for what the user can actually
@@ -81,6 +81,37 @@ const cluster = Clusterize({...});
 </script>
 ```
 
+## Mutation example
+
+```js
+// Enable mutations with buildIndex
+const cluster = Clusterize({
+	rowHeight: 40,
+	buildIndex: true,        // Enable ID-based operations
+	primaryKey: 'id',        // Use 'id' field as primary key
+	scrollElem: document.getElementById('scroll'),
+	contentElem: document.getElementById('content'),
+	
+	fetchOnInit: () => Promise.resolve([
+		{ id: 1, name: 'Alice', status: 'active' },
+		{ id: 2, name: 'Bob', status: 'inactive' },
+		{ id: 3, name: 'Charlie', status: 'active' }
+	]),
+	fetchOnScroll: () => Promise.resolve([]),
+	renderSkeletonRow: (h) => `<div style="height:${h}px">Loading...</div>`,
+	renderRaw: (i, row) => `<div>${row.name} (${row.status})</div>`
+});
+
+// Add new rows
+cluster.insert([{ id: 4, name: 'David', status: 'active' }], 1);
+
+// Update existing row by ID
+cluster.update([{ id: 2, data: { id: 2, name: 'Bob', status: 'active' } }]);
+
+// Remove rows by ID
+cluster.remove([1, 3]);
+```
+
 ## Quick reference
 
 | Option / method                   | Type / default                               | Purpose                                        |
@@ -100,11 +131,17 @@ const cluster = Clusterize({...});
 | `showInitSkeletons`               | `true`                                       | Paint skeletons immediately before first fetch |
 | `debug`                           | `false`                                      | Console debug output                           |
 | `scrollingProgress(cb)`           | `(firstVisible:number) ⇒ void`               | Fires on every render                          |
+| `buildIndex`                      | `false`                                      | Build ID-to-index map for mutations           |
+| `primaryKey`                      | `'id'`                                       | Property name for primary key                  |
 | **methods**                       |                                              |                                                |
 | `refresh()`                       | `void`                                       | Force re-render                                |
 | `scrollToRow(idx, smooth?)`       | `void` ( `true` = smooth)                    | Programmatic scroll                            |
 | `getLoadedCount()`                | `number`                                     | How many rows are cached                       |
 | `destroy()`                       | `void`                                       | Tear down listeners & cache                    |
+| `insert(rows, at?)`               | `void`                                       | Insert rows at position (default: 0)          |
+| `update(patches)`                 | `void`                                       | Update rows by ID or index                     |
+| `remove(keys)`                    | `void`                                       | Remove rows by ID or index                     |
+| `_dump()`                         | `{ cache, index }`                           | Debug helper for internal state               |
 
 > See [docs/API.md](docs/API.md) for the full contract.
 
