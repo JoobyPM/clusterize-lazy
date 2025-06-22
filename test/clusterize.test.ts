@@ -22,6 +22,8 @@ function bootstrapDom(viewport = 120): void {
 	Object.defineProperty(scroll, 'offsetWidth', { value: 300, configurable: true });
 }
 
+type Raw = { id: string | number; name: string };
+
 /** one micro-task - works with both real & fake timers */
 const tick = () => new Promise<void>((r) => setTimeout(r, 0));
 
@@ -184,7 +186,7 @@ describe('Clusterize-Lazy (integration)', () => {
 				scrollElem: document.getElementById('scroll')!,
 				contentElem: document.getElementById('content')!,
 				renderSkeletonRow: () => '<div class="sk"></div>',
-				renderRaw: (_, data: any) => `<div>${data.name}</div>`,
+				renderRaw: (_: number, data: Raw) => `<div>${data.name}</div>`,
 				fetchOnInit() {
 					return Promise.resolve([
 						{ id: 1, name: 'first' },
@@ -214,7 +216,7 @@ describe('Clusterize-Lazy (integration)', () => {
 				scrollElem: document.getElementById('scroll')!,
 				contentElem: document.getElementById('content')!,
 				renderSkeletonRow: () => '<div class="sk"></div>',
-				renderRaw: (_, data: any) => `<div>${data.name}</div>`,
+				renderRaw: (_: number, data: Raw) => `<div>${data.name}</div>`,
 				fetchOnInit() {
 					return Promise.resolve([
 						{ id: 'id1', name: 'original-name' },
@@ -242,7 +244,7 @@ describe('Clusterize-Lazy (integration)', () => {
 			});
 		});
 
-		it('supports delete() to remove rows by id', async () => {
+		it('supports remove() to remove rows by id', async () => {
 			const cluster = Clusterize({
 				rowHeight: 20,
 				buildIndex: true,
@@ -250,7 +252,7 @@ describe('Clusterize-Lazy (integration)', () => {
 				scrollElem: document.getElementById('scroll')!,
 				contentElem: document.getElementById('content')!,
 				renderSkeletonRow: () => '<div class="sk"></div>',
-				renderRaw: (_, data: any) => `<div>${data.name}</div>`,
+				renderRaw: (_: number, data: Raw) => `<div>${data.name}</div>`,
 				fetchOnInit() {
 					return Promise.resolve([
 						{ id: 'a', name: 'first' },
@@ -263,8 +265,8 @@ describe('Clusterize-Lazy (integration)', () => {
 
 			await tick(); // wait for initial fetch
 
-			// Delete by id (using string ID to avoid confusion with numeric indices)
-			cluster.delete(['b']); // delete second item
+			// Remove by id (using string ID to avoid confusion with numeric indices)
+			cluster.remove(['b']); // remove second item
 
 			await eventually(() => {
 				const content = document.getElementById('content')!.textContent;
@@ -272,6 +274,63 @@ describe('Clusterize-Lazy (integration)', () => {
 				expect(content).not.toContain('second');
 				expect(content).toContain('third');
 			});
+		});
+
+		it('validates misuse of buildIndex early', async () => {
+			const cluster = Clusterize({
+				rowHeight: 20,
+				buildIndex: false, // explicitly disabled
+				scrollElem: document.getElementById('scroll')!,
+				contentElem: document.getElementById('content')!,
+				renderSkeletonRow: () => '<div class="sk"></div>',
+				renderRaw: (_: number, data: Raw) => `<div>${data.name}</div>`,
+				fetchOnInit() {
+					return Promise.resolve([
+						{ id: 'a', name: 'first' },
+					]);
+				},
+				fetchOnScroll: () => Promise.resolve([]),
+			});
+
+			await tick(); // wait for initial fetch
+
+			// Should throw when trying to use { id } with buildIndex = false
+			expect(() => {
+				cluster.update([{ id: 'a', data: { id: 'a', name: 'updated' } }]);
+			}).toThrow('Cannot use { id } in update() when buildIndex is false');
+
+			// Should throw when trying to use non-numeric keys with buildIndex = false
+			expect(() => {
+				cluster.remove(['a']); // string key
+			}).toThrow('Cannot use non-numeric keys in remove() when buildIndex is false');
+		});
+
+		it('validates insert() indexes', async () => {
+			const cluster = Clusterize({
+				rowHeight: 20,
+				scrollElem: document.getElementById('scroll')!,
+				contentElem: document.getElementById('content')!,
+				renderSkeletonRow: () => '<div class="sk"></div>',
+				renderRaw: (_: number, data: Raw) => `<div>${data.name}</div>`,
+				fetchOnInit() {
+					return Promise.resolve([
+						{ id: 'a', name: 'first' },
+					]);
+				},
+				fetchOnScroll: () => Promise.resolve([]),
+			});
+
+			await tick(); // wait for initial fetch
+
+			// Should throw for negative index
+			expect(() => {
+				cluster.insert([{ id: 'x', name: 'invalid' }], -1);
+			}).toThrow('Invalid insertion index -1');
+
+			// Should throw for index > totalRows
+			expect(() => {
+				cluster.insert([{ id: 'x', name: 'invalid' }], 10);
+			}).toThrow('Invalid insertion index 10');
 		});
 
 		it('supports _dump() for debugging', async () => {
@@ -282,7 +341,7 @@ describe('Clusterize-Lazy (integration)', () => {
 				scrollElem: document.getElementById('scroll')!,
 				contentElem: document.getElementById('content')!,
 				renderSkeletonRow: () => '<div class="sk"></div>',
-				renderRaw: (_, data: any) => `<div>${data.name}</div>`,
+				renderRaw: (_: number, data: Raw) => `<div>${data.name}</div>`,
 				fetchOnInit() {
 					return Promise.resolve([
 						{ id: 1, name: 'first' },

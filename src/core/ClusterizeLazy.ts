@@ -1,6 +1,7 @@
 import { elementScroll, observeElementOffset, observeElementRect, Virtualizer } from '@tanstack/virtual-core';
 
 export type RowLike = string | Record<string, unknown>;
+export type PrimaryKey<T> = keyof T & (string | number | symbol);
 
 export interface ClusterizeOptions<TRow = RowLike> {
 	/* required */
@@ -24,7 +25,7 @@ export interface ClusterizeOptions<TRow = RowLike> {
 	showInitSkeletons?: boolean;
 
 	buildIndex?: boolean; // build id -> index map
-	primaryKey?: keyof TRow; // required if buildIndex = true
+	primaryKey?: PrimaryKey<TRow>; // required if buildIndex = true
 }
 
 interface CacheEntry<TRow = RowLike> {
@@ -120,6 +121,11 @@ export class ClusterizeLazy<TRow = RowLike> {
 	update(patches: Patch<TRow>[]) {
 		this.log('update()', patches);
 		for (const p of patches) {
+			if (!this.opts.buildIndex && p.id != null) {
+				throw new Error(
+					'Cannot use { id } in update() when buildIndex is false. Set buildIndex: true or use { index } instead.',
+				);
+			}
 			const idx = this.resolveIndex(p);
 			if (idx === -1) continue;
 			this.installRows(idx, [p.data]);
@@ -130,10 +136,23 @@ export class ClusterizeLazy<TRow = RowLike> {
 	/** insert rows at position (defaults to 0) */
 	insert(rows: TRow[], at = 0) {
 		this.log('insert()', rows.length, 'rows at', at);
+
+		// Guard against invalid insertion indexes
+		if (at < 0 || at > this.totalRows) {
+			throw new Error(`Invalid insertion index ${at}. Must be between 0 and ${this.totalRows}.`);
+		}
+
 		this.cache.splice(at, 0, ...new Array(rows.length));
 		this.totalRows += rows.length;
 
-		if (this.index) this.shiftIndex(at, rows.length); // make room
+		if (this.index) {
+			// Optimize for large indexes
+			if (this.index.size > 10_000) {
+				this.rebuildIndex();
+			} else {
+				this.shiftIndex(at, rows.length); // make room
+			}
+		}
 
 		this.v.setOptions({ ...this.v.options, count: this.totalRows });
 		this.installRows(at, rows);
@@ -141,10 +160,19 @@ export class ClusterizeLazy<TRow = RowLike> {
 	}
 
 	/** remove rows by id or numeric index */
-	delete(keys: Array<unknown | number>) {
-		this.log('delete()', keys);
+	remove(keys: Array<unknown>) {
+		this.log('remove()', keys);
+
+		const hasIdKeys = keys.some((k) => typeof k !== 'number');
+		if (!this.opts.buildIndex && hasIdKeys) {
+			throw new Error(
+				'Cannot use non-numeric keys in remove() when buildIndex is false. Set buildIndex: true or use numeric indexes only.',
+			);
+		}
+
+		const typedKeys = keys.map((k) => typeof k === 'number' ? k : this.index?.get(k) ?? -1);
 		// resolve and sort descending so splice does not shift later indices
-		const toDrop = [...new Set(keys.map((k) => typeof k === 'number' ? k : this.index?.get(k) ?? -1))]
+		const toDrop = [...new Set(typedKeys)]
 			.filter((i): i is number => i >= 0)
 			.sort((a, b) => b - a);
 
@@ -246,8 +274,14 @@ export class ClusterizeLazy<TRow = RowLike> {
 			};
 			this.cache[idx] = entry;
 
-			if (this.index && pk in (r as any)) {
-				this.index.set((r as any)[pk], idx);
+			if (
+				this.index &&
+				typeof r === 'object' &&
+				r !== null &&
+				pk in r
+			) {
+				const key = (r as Record<string, unknown>)[pk as string];
+				this.index.set(key, idx);
 			}
 		});
 	}
@@ -290,7 +324,15 @@ export class ClusterizeLazy<TRow = RowLike> {
 		const pk = this.opts.primaryKey;
 		this.cache.forEach((e, i) => {
 			const row = e?.data;
-			if (row && pk in (row as any)) this.index!.set((row as any)[pk], i);
+			if (
+				row &&
+				typeof row === 'object' &&
+				row !== null &&
+				pk in row
+			) {
+				const key = (row as Record<string, unknown>)[pk as string];
+				this.index!.set(key, i);
+			}
 		});
 	}
 
