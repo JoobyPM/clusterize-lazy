@@ -173,4 +173,130 @@ describe('Clusterize-Lazy (integration)', () => {
 			5_000,
 		);
 	});
+
+	// ───────────── mutation API tests ─────────────
+	describe('mutation APIs', () => {
+		it('supports insert() to add rows at specified position', async () => {
+			const cluster = Clusterize({
+				rowHeight: 20,
+				buildIndex: true,
+				primaryKey: 'id',
+				scrollElem: document.getElementById('scroll')!,
+				contentElem: document.getElementById('content')!,
+				renderSkeletonRow: () => '<div class="sk"></div>',
+				renderRaw: (_, data: any) => `<div>${data.name}</div>`,
+				fetchOnInit() {
+					return Promise.resolve([
+						{ id: 1, name: 'first' },
+						{ id: 2, name: 'second' },
+					]);
+				},
+				fetchOnScroll: () => Promise.resolve([]),
+			});
+
+			await tick(); // wait for initial fetch
+
+			// Insert at beginning
+			cluster.insert([{ id: 0, name: 'inserted' }], 0);
+
+			await eventually(() => {
+				const content = document.getElementById('content')!.textContent;
+				expect(content).toContain('inserted');
+				expect(content).toContain('first');
+			});
+		});
+
+		it('supports update() to modify existing rows by id', async () => {
+			const cluster = Clusterize({
+				rowHeight: 20,
+				buildIndex: true,
+				primaryKey: 'id',
+				scrollElem: document.getElementById('scroll')!,
+				contentElem: document.getElementById('content')!,
+				renderSkeletonRow: () => '<div class="sk"></div>',
+				renderRaw: (_, data: any) => `<div>${data.name}</div>`,
+				fetchOnInit() {
+					return Promise.resolve([
+						{ id: 'id1', name: 'original-name' },
+						{ id: 'id2', name: 'second-name' },
+					]);
+				},
+				fetchOnScroll: () => Promise.resolve([]),
+			});
+
+			await tick(); // wait for initial fetch
+
+			// Ensure data is loaded first
+			await eventually(() => {
+				const content = document.getElementById('content')!.textContent;
+				expect(content).toContain('original-name');
+			});
+
+			// Update by id
+			cluster.update([{ id: 'id1', data: { id: 'id1', name: 'updated-name' } }]);
+
+			await eventually(() => {
+				const content = document.getElementById('content')!.textContent;
+				expect(content).toContain('updated-name');
+				expect(content).not.toContain('original-name');
+			});
+		});
+
+		it('supports delete() to remove rows by id', async () => {
+			const cluster = Clusterize({
+				rowHeight: 20,
+				buildIndex: true,
+				primaryKey: 'id',
+				scrollElem: document.getElementById('scroll')!,
+				contentElem: document.getElementById('content')!,
+				renderSkeletonRow: () => '<div class="sk"></div>',
+				renderRaw: (_, data: any) => `<div>${data.name}</div>`,
+				fetchOnInit() {
+					return Promise.resolve([
+						{ id: 'a', name: 'first' },
+						{ id: 'b', name: 'second' },
+						{ id: 'c', name: 'third' },
+					]);
+				},
+				fetchOnScroll: () => Promise.resolve([]),
+			});
+
+			await tick(); // wait for initial fetch
+
+			// Delete by id (using string ID to avoid confusion with numeric indices)
+			cluster.delete(['b']); // delete second item
+
+			await eventually(() => {
+				const content = document.getElementById('content')!.textContent;
+				expect(content).toContain('first');
+				expect(content).not.toContain('second');
+				expect(content).toContain('third');
+			});
+		});
+
+		it('supports _dump() for debugging', async () => {
+			const cluster = Clusterize({
+				rowHeight: 20,
+				buildIndex: true,
+				primaryKey: 'id',
+				scrollElem: document.getElementById('scroll')!,
+				contentElem: document.getElementById('content')!,
+				renderSkeletonRow: () => '<div class="sk"></div>',
+				renderRaw: (_, data: any) => `<div>${data.name}</div>`,
+				fetchOnInit() {
+					return Promise.resolve([
+						{ id: 1, name: 'first' },
+					]);
+				},
+				fetchOnScroll: () => Promise.resolve([]),
+			});
+
+			await tick(); // wait for initial fetch
+
+			const dump = cluster._dump();
+			expect(dump.cache).toBeDefined();
+			expect(dump.index).toBeDefined();
+			expect(dump.index!.get(1)).toBe(0); // id 1 at index 0
+		});
+	});
 });

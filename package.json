@@ -30,7 +30,8 @@
 		"build": "npm run clean && tsup",
 		"dev": "tsup --watch",
 		"test": "vitest run",
-		"format": "deno fmt"
+		"format": "deno fmt src/ test/",
+		"check": "deno fmt --check src/ test/ ; deno lint src/ test/ ; deno check src/ test/"
 	},
 
 	"devDependencies": {
